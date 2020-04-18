@@ -17,8 +17,7 @@
     ],
     "paths": {
       "@flatstadt/omens": [
-        "dist/flatstadt/omens/flatstadt-omens",
-        "dist/flatstadt/omens"
+        "projects/flatstadt/omens/src/public-api.ts"
       ]
     }
   },
