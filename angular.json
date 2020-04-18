@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
-  "version": 1, 
+  "version": 1,
   "newProjectRoot": "projects",
   "projects": {
     "omens": {
@@ -120,38 +120,38 @@
         }
       }
     },
-    "@flatstadt/omens": {
+    "@lapita/omens": {
       "projectType": "library",
-      "root": "projects/flatstadt/omens",
-      "sourceRoot": "projects/flatstadt/omens/src",
+      "root": "projects/lapita/omens",
+      "sourceRoot": "projects/lapita/omens/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-ng-packagr:build",
           "options": {
-            "tsConfig": "projects/flatstadt/omens/tsconfig.lib.json",
-            "project": "projects/flatstadt/omens/ng-package.json"
+            "tsConfig": "projects/lapita/omens/tsconfig.lib.json",
+            "project": "projects/lapita/omens/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/flatstadt/omens/tsconfig.lib.prod.json"
+              "tsConfig": "projects/lapita/omens/tsconfig.lib.prod.json"
             }
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/flatstadt/omens/src/test.ts",
-            "tsConfig": "projects/flatstadt/omens/tsconfig.spec.json",
-            "karmaConfig": "projects/flatstadt/omens/karma.conf.js"
+            "main": "projects/lapita/omens/src/test.ts",
+            "tsConfig": "projects/lapita/omens/tsconfig.spec.json",
+            "karmaConfig": "projects/lapita/omens/karma.conf.js"
           }
         },
         "lint": {
           "builder": "@angular-devkit/build-angular:tslint",
           "options": {
             "tsConfig": [
-              "projects/flatstadt/omens/tsconfig.lib.json",
-              "projects/flatstadt/omens/tsconfig.spec.json"
+              "projects/lapita/omens/tsconfig.lib.json",
+              "projects/lapita/omens/tsconfig.spec.json"
             ],
             "exclude": [
               "**/node_modules/**"

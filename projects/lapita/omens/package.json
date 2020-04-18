@@ -1,5 +1,5 @@
 {
-  "name": "@flatstadt/omens",
+  "name": "@lapita/omens",
   "version": "0.0.1",
   "peerDependencies": {
     "rxjs": "^6.0.0",

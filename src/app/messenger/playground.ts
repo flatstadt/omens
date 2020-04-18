@@ -1,4 +1,4 @@
-import {Message, Messenger} from '@flatstadt/omens';
+import {Message, Messenger} from '@lapita/omens';
 import {asapScheduler} from 'rxjs';
 
 export class MessengerPlayground {

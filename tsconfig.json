@@ -16,8 +16,8 @@
       "dom"
     ],
     "paths": {
-      "@flatstadt/omens": [
-        "projects/flatstadt/omens/src/public-api.ts"
+      "@lapita/omens": [
+        "projects/lapita/omens/src/public-api.ts"
       ]
     }
   },

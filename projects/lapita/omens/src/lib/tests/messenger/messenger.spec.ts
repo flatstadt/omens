@@ -1,5 +1,5 @@
 import {async, fakeAsync, tick} from '@angular/core/testing';
-import {Message, Messenger} from '@flatstadt/omens';
+import {Message, Messenger} from '@lapita/omens';
 import createSpy = jasmine.createSpy;
 import {asapScheduler} from 'rxjs';
 
