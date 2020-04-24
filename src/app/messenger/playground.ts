@@ -1,5 +1,4 @@
-import {Message, Messenger} from '@lapita/omens';
-import {asapScheduler} from 'rxjs';
+import { Message, Messenger } from '@lapita/omens';
 
 export class MessengerPlayground {
 
@@ -15,10 +14,11 @@ export class MessengerPlayground {
     const receipt = Messenger.default().broadcast(new CustomMessage('Oops! wrong broadcast message'));
     receipt.requestCancellation();
     // Send a temporary message that will expired due to its delay
-    const messenger = new Messenger(10, 1000, asapScheduler);
+    const messenger = new Messenger({delay: 100});
     messenger.broadcast(new CustomMessage('broadcast permanent message through a custom messenger'));
     messenger.broadcast(new TemporaryCustomMessage('broadcast temporary message through a custom messenger'));
     setTimeout(() => {
+      console.log('Subscription to custom messenger for delay messages. Waiting...')
       messenger.listenToAll().subscribe(env => console.log('listener 3: msg received', env.read()));
     }, 500);
   }

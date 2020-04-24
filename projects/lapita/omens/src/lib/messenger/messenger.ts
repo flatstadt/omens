@@ -1,4 +1,4 @@
-import { asyncScheduler, Observable, of, ReplaySubject, Subject } from 'rxjs';
+import {asyncScheduler, Observable, of, ReplaySubject, SchedulerLike, Subject} from 'rxjs';
 import { delay, filter, map, take } from 'rxjs/operators';
 
 import { Delivery } from './delivery';
@@ -6,16 +6,31 @@ import { Envelope } from './envelope';
 import { Message } from './message';
 import { Receipt } from './receipt';
 
+export interface MessengerOptions {
+  buffer: number;
+  delay: number;
+  ttl: number;
+  scheduler: SchedulerLike;
+}
+
 // dynamic
 export class Messenger {
     private queue: Subject<Delivery<Message>> = null;
     private disposed = false;
+    private readonly options: MessengerOptions;
+    private readonly defaults: MessengerOptions = {
+      buffer: 0,
+      delay: 0,
+      ttl: 1000,
+      scheduler: asyncScheduler
+    };
 
-    constructor(bufferSize = 0, ttl = 1000, readonly scheduler = asyncScheduler) {
-        if (bufferSize === 0) {
+    constructor(options: Partial<MessengerOptions> = {}) {
+        this.options = {...this.defaults, ...options};
+        if (this.options.buffer === 0) {
             this.queue = new Subject<Delivery<Message>>();
         } else {
-            this.queue = new ReplaySubject<Delivery<Message>>(bufferSize, ttl);
+            this.queue = new ReplaySubject<Delivery<Message>>(this.options.buffer , this.options.ttl);
         }
     }
 
@@ -28,13 +43,7 @@ export class Messenger {
             throw new Error('messenger disposed');
         }
         const delivery = new Delivery(msg, cb, true);
-        const cancel = () => {
-            delivery.cancel();
-        };
-        of(delivery)
-            .pipe(delay(msg.delay, this.scheduler), take(1))
-            .subscribe(e => this.queue.next(e));
-        return new Receipt(cancel, cb);
+        return this.deliverMessage(delivery);
     }
 
     public broadcast<T extends Message>(msg: T, cb?: RecipientAnswer): Receipt {
@@ -42,13 +51,7 @@ export class Messenger {
             throw new Error('messenger disposed');
         }
         const delivery = new Delivery(msg, cb);
-        const cancel = () => {
-            delivery.cancel();
-        };
-        of(delivery)
-            .pipe(delay(msg.delay, this.scheduler), take(1))
-            .subscribe(e => this.queue.next(e));
-        return new Receipt(cancel, cb);
+        return this.deliverMessage(delivery);
     }
 
     public listen<T extends Message>(type: MessageConstructor<T>): Observable<Envelope<T>> {
@@ -70,9 +73,19 @@ export class Messenger {
         );
     }
 
-    dispose(): void {
+    public dispose(): void {
         this.queue.complete();
         this.disposed = true;
+    }
+
+    private deliverMessage<T extends Message>(delivery: Delivery<T>): Receipt {
+      const cancel = () => {
+        delivery.cancel();
+      };
+      of(delivery)
+        .pipe(delay(delivery.message.delay || this.options.delay, this.options.scheduler), take(1))
+        .subscribe(e => this.queue.next(e));
+      return new Receipt(cancel, delivery.callback);
     }
 }
 

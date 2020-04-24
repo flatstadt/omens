@@ -1,8 +1,29 @@
 {
-  "name": "@lapita/omens",
-  "version": "0.0.1",
-  "peerDependencies": {
-    "rxjs": "^6.0.0",
-    "tslib": "^1.10.0"
-  }
+    "name": "@lapita/omens",
+    "version": "0.0.1",
+    "peerDependencies": {
+        "rxjs": "^6.0.0",
+        "tslib": "^1.10.0"
+    },
+    "keywords": [
+        "angular",
+        "angular 2",
+        "events",
+        "model",
+        "messenger",
+        "observer",
+        "omens"
+    ],
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "bugs": {
+        "url": "https://github.com/flatstadt/omens/issues"
+    },
+    "homepage": "https://github.com/flatstadt/omens",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/flatstadt/omens"
+    }
 }

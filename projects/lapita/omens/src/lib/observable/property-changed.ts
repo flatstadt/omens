@@ -1,60 +1,57 @@
-import {from, Observable, Subject} from 'rxjs';
-import {bufferTime, filter, map, switchMap} from 'rxjs/operators';
-import {FlattenObject, FlattenProperty, PropertyValue} from '../utils/flatten-object';
-import {coerce} from '../utils/array';
+import { from, Observable, Subject } from 'rxjs';
+import { bufferTime, filter, map, switchMap } from 'rxjs/operators';
 
-export interface PropertyChangedOpts {
+import { coerce } from '../utils/array';
+import { FlattenObject, FlattenProperty, PropertyValue } from '../utils/flatten-object';
+
+export interface PropertyOptions {
     bufferTime: number;
     dequeueOldUpdates: boolean;
 }
 
-function trimEvents(events: PropertyChangedEvent[],  preserveOldUpdates: boolean): PropertyChangedEvent[] {
-    if (preserveOldUpdates === true || events.length === 0) { return events; }
-    // Reverse event so they are processed from more to less recent
-    const reversedEvents = events.reverse();
-    const mostRecentEvents: PropertyChangedEvent[] = [];
-    const mostRecentUpdates: PropertyChangedUpdateEvent[] = [];
-    for (const e of reversedEvents) {
-        // Filtered updates to be assigned to the current event
-        const filteredEventUpdates = [];
-        for (const u of e.updates) {
-            const id = u.path.join('/');
-            const recentUpdate = mostRecentUpdates.find(m => m.path.join('/') === id);
-            // Take old value from lass recent property updates
-            if (recentUpdate) {
-                recentUpdate.oldValue = u.oldValue;
-                continue;
-            }
-            filteredEventUpdates.push(u);
-            mostRecentUpdates.push(u);
-        }
-        // Exclude sources without property updates
-        if (filteredEventUpdates.length === 0) {
-            continue;
-        }
-        // Reassign just most recent updates
-        e.updates = filteredEventUpdates;
-        mostRecentEvents.push(e);
-    }
-    // Reverse back to leave the sequence as it was
-    return mostRecentEvents.reverse();
+export interface PropertyActionOptions {
+    source: symbol;
+    emitEvent: boolean;
+}
+
+export interface PropertyChangedEvent {
+    updates: PropertyChangedUpdateEvent[];
+    source: symbol;
+}
+
+export interface PropertyChangedUpdateEvent {
+    path: string[];
+    property: string;
+    oldValue: any;
+    newValue: any;
 }
 
 export abstract class PropertyChanged<U extends object> implements IterableIterator<FlattenProperty> {
-    private propertyChangedSource = new Subject<PropertyChangedEvent>();
-    private propertyChanged$ = this.propertyChangedSource.asObservable().pipe(
-        bufferTime(this.opts.bufferTime ? this.opts.bufferTime : 100),
-        map((events: PropertyChangedEvent[]) => trimEvents(events, this.opts.dequeueOldUpdates)),
-        filter(items => items.length !== 0),
-        switchMap(events => from(events))
-    );
+    private _propertyChangedSource = new Subject<PropertyChangedEvent>();
+    private _propertyChanged$: Observable<PropertyChangedEvent>;
     private _updating = 0;
-    private _pendingPropertiesUpdatesToNotify: PropertyChangedUpdateEvent[] = [];
-
+    private _pendingPropertiesUpdates: PropertyChangedUpdateEvent[] = [];
+    private _optionsDefaults: PropertyOptions = {
+        bufferTime: 100,
+        dequeueOldUpdates: false,
+    };
+    private source = Symbol();
+    private actionDefaults: PropertyActionOptions = {
+        source: this.source,
+        emitEvent: true,
+    };
     private counter = 0;
     private items: FlattenProperty[];
 
-    protected constructor(protected data: U, private opts: PropertyChangedOpts = {bufferTime: 100, dequeueOldUpdates: false}) {}
+    protected constructor(protected data: U, opts: Partial<PropertyOptions> = {}) {
+        const options = {...opts, ...this._optionsDefaults};
+        this._propertyChanged$ = this._propertyChangedSource.asObservable().pipe(
+            bufferTime(options.bufferTime),
+            map((events: PropertyChangedEvent[]) => trimEvents(events, options.dequeueOldUpdates)),
+            filter(items => items.length !== 0),
+            switchMap(events => from(events))
+        );
+    }
 
     get updating(): boolean {
         return this._updating > 0;
@@ -69,13 +66,13 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
             this.counter = 0;
             return {
                 done: true,
-                value: current
+                value: current,
             };
         }
         this.counter++;
         return {
             done: false,
-            value: current
+            value: current,
         };
     }
 
@@ -87,22 +84,23 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         return this.getValue(this.data, coerce(path));
     }
 
-    public setPropertyValue(source: Symbol, path: string | string[], value: any) {
+    public setPropertyValue(path: string | string[], value: any, opts: Partial<PropertyActionOptions> = {}) {
+        const options = {...this.actionDefaults, ...opts};
         const coercedPath: string[] = coerce(path);
         if (!this.checkIfValidUpdate(this.data, coercedPath, value)) {
             return;
         }
         const oldValue = this.getValue(this.data, coercedPath);
         this.data = this.updateWithValue(this.data, coercedPath, value);
-        this.notifyObservers(source, {
+        this.notifyObservers(options.source, {
             path: coercedPath,
             property: coercedPath[coercedPath.length - 1],
             newValue: value,
-            oldValue
+            oldValue,
         });
     }
 
-    public setPropertiesValue(source: Symbol, data: Partial<U>) {
+    public setPropertiesValue(data: Partial<U>, opts: Partial<PropertyActionOptions> = {}) {
         if (!data) {
             return;
         }
@@ -110,36 +108,37 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         const flattenObj = new FlattenObject(data as object);
         const properties: FlattenProperty[] = flattenObj.getProperties();
         properties.forEach(p => {
-            this.setPropertyValue(source, p.path, p.value);
+            this.setPropertyValue(p.path, p.value, opts);
         });
-        this.endUpdate(source);
+        this.endUpdate(opts);
     }
 
-    public register(observer: Symbol, ignoreOwnUpdates: boolean = true): Observable<PropertyChangedEvent> {
-        return this.propertyChanged$.pipe(filter(event => !(event.source === observer) || !ignoreOwnUpdates)) as Observable<PropertyChangedEvent>;
+    public listen(observer: symbol, ownUpdates = false): Observable<PropertyChangedEvent> {
+        return this._propertyChanged$.pipe(filter(event => !(event.source === observer) || ownUpdates)) as Observable<PropertyChangedEvent>;
     }
 
     beginUpdate() {
         this._updating++;
     }
 
-    endUpdate(source: Symbol) {
+    endUpdate(opts: Partial<PropertyActionOptions> = {}) {
+        const options = {...this.actionDefaults, ...opts};
         if (this._updating === 0) {
             return;
         }
         this._updating--;
-        if (this._updating === 0) {
-            this.propertyChangedSource.next({source, updates: [...this._pendingPropertiesUpdatesToNotify]});
-            this._pendingPropertiesUpdatesToNotify = [];
+        if (this._updating === 0 && options.emitEvent) {
+            this._propertyChangedSource.next({source: options.source, updates: [...this._pendingPropertiesUpdates]});
+            this._pendingPropertiesUpdates = [];
         }
     }
 
-    protected notifyObservers(source: Symbol, update: PropertyChangedUpdateEvent) {
+    protected notifyObservers(source: symbol, update: PropertyChangedUpdateEvent) {
         if (this._updating > 0) {
-            this._pendingPropertiesUpdatesToNotify.push(update);
+            this._pendingPropertiesUpdates.push(update);
             return;
         }
-        this.propertyChangedSource.next({source, updates: [update]});
+        this._propertyChangedSource.next({source, updates: [update]});
     }
 
     protected getValue(data: U, path: string[]): any {
@@ -155,9 +154,11 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         for (let i = 0; i < path.length; i++) {
             const property = path[i];
             if (!child.hasOwnProperty(property)) {
+              console.log('property not found', child, property)
                 return false;
             }
             if (i === path.length - 1 && coerceToValue(child[property]) === value) {
+              console.log('last property', value, child )
                 return false;
             }
             child = child[property];
@@ -199,14 +200,36 @@ function coerceToValue(obj: any) {
     return obj;
 }
 
-export interface PropertyChangedEvent {
-    updates: PropertyChangedUpdateEvent[];
-    source: Symbol;
-}
-
-export interface PropertyChangedUpdateEvent {
-    path: string[];
-    property: string;
-    oldValue: any;
-    newValue: any;
+function trimEvents(events: PropertyChangedEvent[], preserveOldUpdates: boolean): PropertyChangedEvent[] {
+  if (preserveOldUpdates === true || events.length === 0) {
+      return events;
+  }
+  // Reverse event so they are processed from more to less recent
+  const reversedEvents = events.reverse();
+  const mostRecentEvents: PropertyChangedEvent[] = [];
+  const mostRecentUpdates: PropertyChangedUpdateEvent[] = [];
+  for (const e of reversedEvents) {
+      // Filtered updates to be assigned to the current event
+      const filteredEventUpdates = [];
+      for (const u of e.updates) {
+          const id = u.path.join('/');
+          const recentUpdate = mostRecentUpdates.find(m => m.path.join('/') === id);
+          // Take old value from lass recent property updates
+          if (recentUpdate) {
+              recentUpdate.oldValue = u.oldValue;
+              continue;
+          }
+          filteredEventUpdates.push(u);
+          mostRecentUpdates.push(u);
+      }
+      // Exclude sources without property updates
+      if (filteredEventUpdates.length === 0) {
+          continue;
+      }
+      // Reassign just most recent updates
+      e.updates = filteredEventUpdates;
+      mostRecentEvents.push(e);
+  }
+  // Reverse back to leave the sequence as it was
+  return mostRecentEvents.reverse();
 }

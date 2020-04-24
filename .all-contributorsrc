@@ -1,0 +1,14 @@
+{
+  "projectName": "omens",
+  "projectOwner": "@flatstadt",
+  "repoType": "github",
+  "repoHost": "https://github.com/flatstadt/omens",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "angular",
+  "contributors": [],
+  "contributorsPerLine": 7
+}

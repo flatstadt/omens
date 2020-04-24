@@ -7,6 +7,14 @@ export class Delivery<T extends Message> {
     private _numberOfDeliveries = 0;
     constructor(private readonly msg: T, private cb?: RecipientAnswer, readonly unique = false) {}
 
+    get message(): T {
+      return this.msg;
+    }
+
+    get callback(): RecipientAnswer {
+      return this.cb;
+    }
+
     get delivered(): boolean {
         return this.unique && this._numberOfDeliveries > 0;
     }

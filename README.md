@@ -1,27 +1,36 @@
-# Omens
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?style=flat-square)]()
+[![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
+[![flatstadt](https://img.shields.io/badge/@-flatstadt-383636?style=flat-square&labelColor=8f68d4)](https://github.com/flatstadt/)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 9.0.6.
 
-## Development server
+> Slogan
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+description
 
-## Code scaffolding
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Features
 
-## Build
+- ✅ (feature)
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+## Table of Contents
 
-## Running unit tests
+- [Features](#features)
+- [Table of Contents](#table-of-contents)
+- [Installation](#installation)
+  - [NPM](#npm)
+  - [Yarn](#yarn)
+- [Usage](#usage)
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
-## Running end-to-end tests
+## Installation
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+### NPM
 
-## Further help
+`npm install @lapita/omens --save`
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+### Yarn
+
+`yarn add @lapita/omens`
+
+## Usage
