@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component } from '@angular/core';
 
 import { PropertyPlayground } from './property-changed/playground';
 
@@ -7,8 +7,9 @@ import { PropertyPlayground } from './property-changed/playground';
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.css'],
 })
-export class AppComponent {
-    constructor() {
+export class AppComponent implements AfterViewInit {
+    constructor() {}
+    ngAfterViewInit(): void {
         // MessengerPlayground.play();
         // ModelPlayground.play();
         PropertyPlayground.play();
