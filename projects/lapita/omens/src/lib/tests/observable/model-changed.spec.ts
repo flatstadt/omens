@@ -84,7 +84,7 @@ describe('Omens: ModelChanged', () => {
   it('should count number of changes', () => {
     service.update({name: 'Leon'});
     service.update({name: 'Josh'});
-    expect(service.numberOfChanges).toBe(2);
+    expect(service.historyLength).toBe(3);
   });
 
   it('should callback source twice', () => {

@@ -16,22 +16,30 @@ export interface ModelActionOptions {
     emitEvent: boolean;
 }
 
+export type ModelPropertyComparer = (prop: string, oldValue: any, newValue: any) => boolean;
+
+export interface ModelHistory<U> {
+    ts: number;
+    source: symbol;
+    step: number;
+    update: number;
+    value: Partial<U>;
+}
+
 export abstract class ModelChanged<U extends any> {
     protected readonly source: symbol = Symbol('model');
-    protected comparer: (prop: string, oldValue: any, newValue: any) => boolean = defaultComparer;
-    private actionDefaults: ModelActionOptions = {
+    protected comparer: ModelPropertyComparer = defaultComparer;
+    private readonly actionDefaults: ModelActionOptions = {
         source: this.source,
         emitEvent: true,
     };
     private _modelChangedSource = new Subject<symbol>();
     private _updating = 0;
-    private _history: {ts: number; source: symbol; step: number; update: number; value: Partial<U>}[] = [];
+    private _history: ModelHistory<U>[] = [];
     private _historyPointIndex = 0;
-    private _data = null;
     private _updates = 0;
 
-    protected constructor(data: U) {
-        this._data = data;
+    protected constructor(private data: U) {
         this._history.push({
             ts: Date.now(),
             source: this.source,
@@ -50,7 +58,7 @@ export abstract class ModelChanged<U extends any> {
     }
 
     get value(): U {
-        return {...this._data};
+        return {...this.data};
     }
 
     get history(): ModelHistory<U>[] {
@@ -61,8 +69,8 @@ export abstract class ModelChanged<U extends any> {
         return this._historyPointIndex;
     }
 
-    get numberOfChanges(): number {
-        return this._history.length - 1;
+    get historyLength(): number {
+        return this._history.length;
     }
 
     undo(opts: Partial<ModelActionOptions> = {}) {
@@ -71,7 +79,7 @@ export abstract class ModelChanged<U extends any> {
             return;
         }
         this._historyPointIndex--;
-        const data = this.mergeHistoryToInstantIndex(this._historyPointIndex);
+        const data = this.mergeHistoryToPointIndex(this._historyPointIndex);
         this.updateModel(options.source, data, options.emitEvent);
     }
 
@@ -81,7 +89,7 @@ export abstract class ModelChanged<U extends any> {
             return;
         }
         this._historyPointIndex = 0;
-        const data = this.mergeHistoryToInstantIndex(this._historyPointIndex);
+        const data = this.mergeHistoryToPointIndex(this._historyPointIndex);
         this.updateModel(options.source, data, options.emitEvent);
     }
 
@@ -91,7 +99,7 @@ export abstract class ModelChanged<U extends any> {
             return;
         }
         this._historyPointIndex++;
-        const data = this.mergeHistoryToInstantIndex(this._historyPointIndex);
+        const data = this.mergeHistoryToPointIndex(this._historyPointIndex);
         this.updateModel(options.source, data, options.emitEvent);
     }
 
@@ -101,30 +109,30 @@ export abstract class ModelChanged<U extends any> {
             return;
         }
         this._historyPointIndex = this.history.length - 1;
-        const data = this.mergeHistoryToInstantIndex(this._historyPointIndex);
+        const data = this.mergeHistoryToPointIndex(this._historyPointIndex);
         this.updateModel(options.source, data, options.emitEvent);
     }
 
     getPropertyValue<K extends keyof U>(key: K): any {
-        return this._data[key];
+        return this.data[key];
     }
 
     getPartialValue<K extends keyof U>(keys: K[]): Partial<U> {
         return keys.reduce((obj, k) => {
-          obj[k as string] = this._data[k as string];
-          return obj;
+            obj[k as string] = this.data[k as string];
+            return obj;
         }, {});
     }
 
     update(value: Partial<U>, opts: Partial<ModelActionOptions> = {}) {
         const options = {...this.actionDefaults, ...opts};
-        const changedChunk = this.extractChangedChunk(this._data, value);
+        const changedChunk = this.extractChangedChunk(this.data, value);
         if (!changedChunk || Object.keys(changedChunk).length === 0) {
             return;
         }
         this._updates++;
         this.addPointToHistory(options.source, changedChunk);
-        const data = {...(this._data as any), ...(changedChunk as any)};
+        const data = {...(this.data as any), ...(changedChunk as any)};
         this.updateModel(options.source, data, options.emitEvent);
     }
 
@@ -179,14 +187,14 @@ export abstract class ModelChanged<U extends any> {
     }
 
     private updateModel(source: symbol, data: U, emitEvent: boolean) {
-        this._data = data;
+        this.data = data;
         if (emitEvent === false || this._updating > 0 || !this.notifyListeners(Object.keys(data))) {
             return;
         }
         this._modelChangedSource.next(source);
     }
 
-    private mergeHistoryToInstantIndex(index: number): U {
+    private mergeHistoryToPointIndex(index: number): U {
         let data = {};
         for (let i = 0; i <= index; i++) {
             data = {...data, ...this._history[i].value};
