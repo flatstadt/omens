@@ -1,7 +1,5 @@
 import { AfterViewInit, Component } from '@angular/core';
 
-import { PropertyPlayground } from './property-changed/playground';
-
 @Component({
     selector: 'app-root',
     templateUrl: './app.component.html',
@@ -12,6 +10,6 @@ export class AppComponent implements AfterViewInit {
     ngAfterViewInit(): void {
         // MessengerPlayground.play();
         // ModelPlayground.play();
-        PropertyPlayground.play();
+        // PropertyPlayground.play();
     }
 }

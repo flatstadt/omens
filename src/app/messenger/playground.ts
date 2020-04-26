@@ -21,6 +21,8 @@ export class MessengerPlayground {
       console.log('Subscription to custom messenger for delay messages. Waiting...')
       messenger.listenToAll().subscribe(env => console.log('listener 3: msg received', env.read()));
     }, 500);
+
+
   }
 }
 

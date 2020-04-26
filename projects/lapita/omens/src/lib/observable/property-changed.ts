@@ -1,4 +1,4 @@
-import { from, Observable, Subject } from 'rxjs';
+import { from, Observable, queueScheduler, Subject } from 'rxjs';
 import { bufferTime, filter, map, switchMap } from 'rxjs/operators';
 
 import { coerce } from '../utils/array';
@@ -47,7 +47,7 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         emitEvent: true,
     };
     private readonly optionsDefaults: PropertyOptions = {
-        bufferTime: 10,
+        bufferTime: 20,
         omitOlderUpdates: true,
     };
     protected comparer: PropertyComparer = defaultComparer;
@@ -220,7 +220,7 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         }
     }
 
-    protected flushEventQueue(source: symbol, emitEvent: boolean) {
+    private flushEventQueue(source: symbol, emitEvent: boolean) {
         if (this._pendingPropertiesUpdates.length === 0) {
             return;
         }
@@ -230,7 +230,7 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         this._pendingPropertiesUpdates = [];
     }
 
-    protected queueEvent(source: symbol, updates: PropertyChangedUpdateEvent[]) {
+    private queueEvent(source: symbol, updates: PropertyChangedUpdateEvent[]) {
         if (this._updating > 0) {
             this._pendingPropertiesUpdates.push(...updates);
             return;
@@ -286,7 +286,7 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
 
     private initObservable(options: PropertyOptions) {
         return this._propertyChangedSource.asObservable().pipe(
-            bufferTime(options.bufferTime),
+            bufferTime(options.bufferTime, queueScheduler),
             filter(events => events.length > 0),
             map(events => (options.omitOlderUpdates ? trimEvents(events, this.comparer) : events)),
             switchMap(events => from(events))
