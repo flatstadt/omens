@@ -40,7 +40,7 @@ const defaultComparer = (path: string[], oldValue: any, newValue: any) => {
     return oldValue === newValue;
 };
 
-export abstract class PropertyChanged<U extends object> implements IterableIterator<FlattenProperty> {
+export abstract class PropertyChanged<U extends any> {
     protected readonly source = Symbol();
     private readonly actionDefaults: PropertyActionOptions = {
         source: this.source,
@@ -56,8 +56,6 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
     private _updating = 0;
     private _pendingPropertiesUpdates: PropertyChangedUpdateEvent[] = [];
 
-    private _iteratorCounter = 0;
-    private _iteratorItems: FlattenProperty[];
     private _history: PropertyHistory[] = [];
     private _historyPointIndex = 0;
     private _updates = 0;
@@ -66,6 +64,10 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         this._history = [this.initHistory(data)];
         const options = {...this.optionsDefaults, ...opts};
         this._propertyChanged$ = this.initObservable(options);
+    }
+
+    get propertyChanged(): Observable<PropertyChangedEvent> {
+        return this._propertyChanged$;
     }
 
     get value(): U {
@@ -94,29 +96,6 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
 
     get paths(): string[][] {
         return this.properties.map(p => p.path);
-    }
-
-    public next(): IteratorResult<FlattenProperty> {
-        if (this._iteratorCounter === 0) {
-            this._iteratorItems = this.properties;
-        }
-        const current = this._iteratorItems[this._iteratorCounter];
-        if (this._iteratorCounter >= this._iteratorItems.length - 1) {
-            this._iteratorCounter = 0;
-            return {
-                done: true,
-                value: current,
-            };
-        }
-        this._iteratorCounter++;
-        return {
-            done: false,
-            value: current,
-        };
-    }
-
-    [Symbol.iterator](): IterableIterator<FlattenProperty> {
-        return this;
     }
 
     undo(opts: Partial<PropertyActionOptions> = {}) {
@@ -220,24 +199,6 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         }
     }
 
-    private flushEventQueue(source: symbol, emitEvent: boolean) {
-        if (this._pendingPropertiesUpdates.length === 0) {
-            return;
-        }
-        if (emitEvent) {
-            this._propertyChangedSource.next({source, updates: this._pendingPropertiesUpdates});
-        }
-        this._pendingPropertiesUpdates = [];
-    }
-
-    private queueEvent(source: symbol, updates: PropertyChangedUpdateEvent[]) {
-        if (this._updating > 0) {
-            this._pendingPropertiesUpdates.push(...updates);
-            return;
-        }
-        this._propertyChangedSource.next({source, updates});
-    }
-
     protected notifyListeners(path: string[], value: any): boolean {
         return true;
     }
@@ -279,9 +240,27 @@ export abstract class PropertyChanged<U extends object> implements IterableItera
         return newData;
     }
 
-    protected flattenProperties(data: U): FlattenProperty[] {
+    private flattenProperties(data: U): FlattenProperty[] {
         const flattenObj = new FlattenObject(data);
         return flattenObj.getProperties();
+    }
+
+    private flushEventQueue(source: symbol, emitEvent: boolean) {
+        if (this._pendingPropertiesUpdates.length === 0) {
+            return;
+        }
+        if (emitEvent) {
+            this._propertyChangedSource.next({source, updates: this._pendingPropertiesUpdates});
+        }
+        this._pendingPropertiesUpdates = [];
+    }
+
+    private queueEvent(source: symbol, updates: PropertyChangedUpdateEvent[]) {
+        if (this._updating > 0) {
+            this._pendingPropertiesUpdates.push(...updates);
+            return;
+        }
+        this._propertyChangedSource.next({source, updates});
     }
 
     private initObservable(options: PropertyOptions) {
