@@ -26,7 +26,7 @@ export interface ModelHistory<U> {
     value: Partial<U>;
 }
 
-export abstract class ModelChanged<U extends any> {
+export abstract class ModelChanged<U extends object> {
     protected readonly source: symbol = Symbol('model');
     protected comparer: ModelPropertyComparer = defaultComparer;
     private readonly actionDefaults: ModelActionOptions = {

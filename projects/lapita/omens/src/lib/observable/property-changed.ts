@@ -1,8 +1,8 @@
 import { from, Observable, queueScheduler, Subject } from 'rxjs';
 import { bufferTime, filter, map, switchMap } from 'rxjs/operators';
 
-import { coerce } from '../utils/array';
-import { FlattenObject, FlattenProperty, PropertyValue } from '../utils/flatten-object';
+import { coerce, flatten } from '../utils/array';
+import { coerceToValue, FlattenObject, FlattenProperty, wrapValue } from '../utils/flatten-object';
 
 export interface PropertyOptions {
     bufferTime: number;
@@ -40,7 +40,7 @@ const defaultComparer = (path: string[], oldValue: any, newValue: any) => {
     return oldValue === newValue;
 };
 
-export abstract class PropertyChanged<U extends any> {
+export abstract class PropertyChanged<U extends object> {
     protected readonly source = Symbol();
     private readonly actionDefaults: PropertyActionOptions = {
         source: this.source,
@@ -333,24 +333,6 @@ export abstract class PropertyChanged<U extends any> {
         }
         return updates;
     }
-}
-
-function flatten(array: any[][]): any[] {
-    return array.reduce((result, item) => result.concat(item), []);
-}
-
-function wrapValue(obj: any) {
-    if (obj instanceof Object && !(obj instanceof Array)) {
-        return new PropertyValue(obj);
-    }
-    return obj;
-}
-
-function coerceToValue(obj: any) {
-    if (obj instanceof PropertyValue) {
-        return obj.value;
-    }
-    return obj;
 }
 
 function trimEvents(events: PropertyChangedEvent[], comparer: PropertyComparer): PropertyChangedEvent[] {

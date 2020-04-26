@@ -1,8 +1,7 @@
 export class FlattenObject {
-
     constructor(private obj: object) {
         const collection: FlattenProperty[] = [];
-        this.flattenProperties([], { ...this.obj }, collection);
+        this.flattenProperties([], {...this.obj}, collection);
         this.collection = collection;
     }
     private readonly collection: FlattenProperty[];
@@ -19,7 +18,7 @@ export class FlattenObject {
         return obj;
     }
 
-    flatten(usePathAsName: boolean = true): { [prop: string]: any } {
+    flatten(usePathAsName: boolean = true): {[prop: string]: any} {
         return FlattenObject.flattenObject(this.collection, usePathAsName);
     }
 
@@ -68,4 +67,18 @@ export class PropertyValue<T extends any> {
     constructor(value: T) {
         this.value = value;
     }
+}
+
+export function wrapValue(obj: any) {
+    if (obj instanceof Object && !(obj instanceof Array)) {
+        return new PropertyValue(obj);
+    }
+    return obj;
+}
+
+export function coerceToValue(obj: any) {
+    if (obj instanceof PropertyValue) {
+        return obj.value;
+    }
+    return obj;
 }
