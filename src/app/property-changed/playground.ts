@@ -33,7 +33,5 @@ export class PropertyPlayground {
       service.undoAll();
       console.log('history->', service.history);
     }, 60);
-
-
   }
 }
